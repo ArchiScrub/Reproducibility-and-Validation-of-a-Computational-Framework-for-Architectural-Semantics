@@ -1,0 +1,23 @@
+{
+  "inputs": {
+    "corpus_dir": "txt_corpus",
+    "w2v_in": "txt_corpus\\W2V_Corpus.txt",
+    "bert_in": "txt_corpus\\BERT_Corpus.txt"
+  },
+  "outputs": {
+    "w2v_out": "txt_corpus\\W2V_Corpus_CL.txt",
+    "bert_out": "txt_corpus\\BERT_Corpus_CL.txt"
+  },
+  "counts": {
+    "w2v": {
+      "total": 91679,
+      "kept": 91528,
+      "removed": 151
+    },
+    "bert": {
+      "total": 33640,
+      "kept": 33549,
+      "removed": 91
+    }
+  }
+}
