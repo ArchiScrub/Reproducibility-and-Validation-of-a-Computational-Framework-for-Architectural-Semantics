@@ -1,0 +1,48 @@
+Timestamp: 2025-10-19 10:10:25
+Python: 3.11.9
+Platform: Windows-10-10.0.26200-SP0
+PyTorch: 2.5.1+cu121
+CUDA Version: 12.1
+Device: cuda
+Transformers: 4.56.0
+Gensim: 4.3.3
+
+--- Config Sections ---
+[w2v_cbow_final]
+vector_size: 100
+window: 9
+epochs: 50
+min_count: 3
+alpha: 0.01
+min_alpha: 0.0001
+sample: 0.001
+workers: 1
+sg: 0
+hs: 1
+negative: 0
+
+[w2v_sg_final]
+vector_size: 100
+window: 9
+epochs: 50
+min_count: 3
+alpha: 0.01
+min_alpha: 0.0001
+sample: 0.001
+workers: 1
+sg: 1
+hs: 1
+negative: 0
+
+[bert_final]
+learning_rate: 3e-05
+per_device_train_batch_size: 32
+num_train_epochs: 3
+warmup_ratio: 0.06
+weight_decay: 0.01
+max_length: 128
+mlm_probability: 0.15
+gradient_accumulation_steps: 2
+bert_candidate_min_freq: 5
+fp16: False
+
