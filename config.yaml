@@ -1,0 +1,641 @@
+# =============================================================
+#  Main Files & Output
+# =============================================================
+corpus_dir: "txt_corpus"
+corpus_file_w2v: "W2V_Corpus.txt"
+corpus_file_bert_cased: "BERT_Corpus.txt"
+corpus_file_w2v_cl: "W2V_Corpus_CL.txt"
+corpus_file_bert_cased_cl: "BERT_Corpus_CL.txt"
+
+datasets:
+  wordsim353_path: wordsim353crowd.csv
+  wordsim353_ja_en_path: wordsim353-ja-en.csv
+
+definitional_pairs:
+  - ["wabi", "sabi"]
+  - ["ma", "en"]
+  - ["shakkei", "tsuboniwa"]
+
+# =============================================================
+#  General Runtime Settings
+# =============================================================
+seed: 42
+repeats:
+  n_runs: 6                # set to 3 later for stability
+  seeds: [42, 101, 387, 527, 777, 1234]          # leave empty to auto-derive from 'seed'
+
+hf_revision: "3f076fdb1ab68d5b2880cb87a0886f315b8146f8"
+
+reporting:
+  write_run_manifest: true
+
+
+# =============================================================
+#  Word2Vec Training Settings (shared for CBOW & SG)
+#  The script toggles sg=0/1 internally, so one path suffices.
+# =============================================================
+
+# =============================================================
+#  FINAL MODEL PARAMS - Word2Vec CBOW
+# =============================================================
+w2v_cbow_final:
+  vector_size: 100
+  window: 9
+  epochs: 50
+  min_count: 3
+  alpha: 0.01
+  min_alpha: 0.0001
+  sample: 0.001
+  workers: 1
+  sg: 0
+  hs: 1
+  negative: 0
+
+w2v_sg_final:
+  vector_size: 100
+  window: 9
+  epochs: 50
+  min_count: 3
+  alpha: 0.01
+  min_alpha: 0.0001
+  sample: 0.001
+  workers: 1
+  sg: 1
+  hs: 1
+  negative: 0
+
+# =============================================================
+#  FINAL MODEL PARAMS
+# =============================================================
+
+# ---- BERT (MLM) Final ----
+bert_final:
+  learning_rate: 3e-05  # Lowered to avoid overfit
+  per_device_train_batch_size: 32
+  num_train_epochs: 3
+  warmup_ratio: 0.06
+  weight_decay: 0.01
+  max_length: 128
+  mlm_probability: 0.15
+  gradient_accumulation_steps: 2
+  bert_candidate_min_freq: 5
+  fp16: False
+
+# =============================================================
+#  Analysis & Classification Settings
+# =============================================================
+
+# --- CHOOSE WHICH WORD LIST TO USE ---
+# Options: "all" or "core". "all" uses target_words, "core" uses core_target_words.
+word_list_to_use: "all"
+
+target_words:
+  - ma
+  - mu
+  - wabi
+  - sabi
+  - wabi_sabi
+  - en
+  - engawa
+  - shōji
+  - fusuma
+  - tokonoma
+  - chigaidana
+  - doma
+  - genkan
+  - tomeishi
+  - ikezuishi
+  - shakkei
+  - roji
+  - torii
+  - shimenawa
+  - tsuboniwa
+  - byōbu
+  - hisashi
+  - haiden
+  - sandō
+  - aware
+  - honden
+  - chashitsu
+  - karesansui
+
+core_target_words:
+  - ma
+  - mu
+  - engawa
+  - shōji
+  - tokonoma
+  - tomeishi
+  - shakkei
+
+## --- SHARED: Clustering Parameters ---
+# General settings for K-Means and Agglomerative clustering used across both papers.
+analysis_params:
+  # NOTE: model_clusters is used by Paper 2 (binary ARI); Paper 4 ignores it.
+  model_clusters: 2
+  kmeans_n_init: 50       # ADDED: Controls KMeans robustness
+  kmeans_max_iter: 1000   # ADDED: Controls KMeans iterations
+  z_score_for_clustering: true
+  dendro_cut: true  # Draw a horizontal cut-line at height 0.5 on dendrograms for binary splits
+
+## --- SHARED: t-SNE Visualization Parameters ---
+# Settings for the t-SNE dimensionality reduction plots used in both papers.
+tsne_params:
+  perplexity_divisor: 2   # ADDED: Dynamically calculate perplexity (e.g., num_words / 2)
+  pca_init_dims: 20       # ADDED: PCA components before t-SNE
+  n_iter: 1500            # ADDED: t-SNE iterations
+  early_exaggeration: 8.0 # ADDED: t-SNE tuning parameter
+
+## --- PAPER 1: Specific Visual Diagnostic Settings ---
+# Parameters for plots and analyses that are unique to Paper 1.
+paper1_visuals:
+  similarity_threshold: 0.25
+  cooccurrence_window: 5
+  cooccurrence_top_n: 10
+  # used by BERT top-N candidate filtering in get_top_n_similar()
+  bert_candidate_min_freq: 5
+
+## --- PAPER 2: Specific Analysis Settings ---
+# Parameters for analyses that are unique to Paper 2.
+paper2_analysis:
+  similarity_threshold: 0.25 # Minimum cosine similarity to draw an edge in the similarity web graph
+  highlight_central:  # List of terms to enlarge in similarity web plots (e.g., abstracts like 'ma')
+    - ma
+    - tokonoma
+
+  # --- Polysemy (Paper 4, automatic k selection) ---
+  # The script will test k = 1..min(n_contexts, polysemy_auto_max_k),
+  # score with Silhouette & Calinski–Harabasz, check stability, then pick the best k.
+  polysemy_auto_max_k: 10
+  polysemy_min_instances: 3
+
+  # --- Multi-label inference thresholds (Paper 4) ---
+  multilabel_inference:
+    use_rowwise_percentile: true   # if false, uses top-k instead
+    rowwise_percentile: 90         # per-term percentile threshold
+    topk: 0                        # if >0 and use_rowwise_percentile=false, take top-k labels
+    min_similarity: 0.25           # absolute safety floor (cosine)
+    consensus_strategy: "mean"     # merge model scores: "mean" or "median"
+    require_min_models: 1          # min # of models needed to label a term
+
+definitional_audit:
+  bootstrap_n: 1000     # 1000–2000 is good
+  report_ci: true       # write mean ± 95% CI to CSV
+
+# ---- Zero-shot (for Paper 4) ----
+zero_shot:
+  labels:
+    Aesthetic: ["beauty", "grace", "elegance"]
+    Moral: ["virtue", "duty", "honour"]
+  targets: ["poetry", "architecture", "law", "ritual"]
+  models: ["CBOW", "Skip-gram", "BERT_BASE", "BERT_FINETUNED"]
+  confidence_threshold: 0.60
+  write_per_doc_scores: true
+
+concept_definitions:
+  river_connector_concept:
+    - river
+    - stream
+    - path
+    - passage
+    - connect
+    - flow
+    - link
+    - channel
+  edge_boundary_concept:
+    - edge
+    - border
+    - boundary
+    - limit
+    - frame
+    - periphery
+    - brim
+    - verge
+  hybrid_concept:
+    - river
+    - stream
+    - path
+    - passage
+    - connect
+    - flow
+    - link
+    - channel
+    - edge
+    - border
+    - boundary
+    - limit
+    - frame
+    - periphery
+    - brim
+    - verge
+
+
+# =============================================================
+#  Adjusted Rand Index (ARI) Settings
+# =============================================================
+ari_settings:
+
+  ## --- Paper 1: Confirmatory Analysis ---
+  # Settings for Paper 1, which tests model clusters against pre-defined hypotheses.
+  paper1_confirmatory:
+    # This mode switch is read by the Paper 1 script.
+    analysis_mode: "confirmatory"
+
+    # Defines which of the hypotheses below should be used for the main validation.
+    active_hypothesis: "physical_vs_conceptual"
+
+    # Sensitivity options for the clustering algorithm used in the ARI validation.
+    sensitivity_analysis:
+      enable_agglomerative: true   # If true, runs Agglomerative clustering alongside K-Means.
+      l2_normalize: true           # If true, L2-normalizes vectors before clustering.
+
+    # Collection of pre-defined hypotheses for the confirmatory test.
+    # Key: Conceptual = 0, Physical = 1
+    hypotheses:
+      physical_vs_conceptual:
+        ma: 0
+        mu: 0
+        wabi: 0
+        sabi: 0
+        wabi_sabi: 0
+        en: 0
+        engawa: 1
+        shōji: 1
+        fusuma: 1
+        tokonoma: 1
+        chigaidana: 1
+        doma: 1
+        genkan: 1
+        tomeishi: 1
+        ikezuishi: 1
+        shakkei: 0
+        roji: 1
+        torii: 1
+        shimenawa: 1
+        tsuboniwa: 1
+        byōbu: 1
+        hisashi: 1
+        haiden: 1
+        sandō: 1
+        aware: 0
+        honden: 1
+        chashitsu: 1
+        karesansui: 1
+
+      tokonoma_as_conceptual:
+        ma: 0
+        mu: 0
+        wabi: 0
+        sabi: 0
+        wabi_sabi: 0
+        en: 0
+        engawa: 1
+        shōji: 1
+        fusuma: 1
+        tokonoma: 0
+        chigaidana: 1
+        doma: 1
+        genkan: 1
+        tomeishi: 1
+        ikezuishi: 1
+        shakkei: 0
+        roji: 1
+        torii: 1
+        shimenawa: 1
+        tsuboniwa: 1
+        byōbu: 1
+        hisashi: 1
+        haiden: 1
+        sandō: 1
+        aware: 0
+        honden: 1
+        chashitsu: 1
+        karesansui: 1
+
+  ## --- Paper 2: Exploratory Analysis ---
+  # Settings for Paper 2, which discovers the best-fit grouping for a given list of words.
+  paper2_exploratory:
+    words_to_explore:
+    - ma
+    - mu
+    - wabi
+    - sabi
+    - wabi_sabi
+    - en
+    - engawa
+    - shōji
+    - fusuma
+    - tokonoma
+    - chigaidana
+    - doma
+    - genkan
+    - tomeishi
+    - ikezuishi
+    - shakkei
+    - roji
+    - torii
+    - shimenawa
+    - tsuboniwa
+    - byōbu
+    - hisashi
+    - haiden
+    - sandō
+    - aware
+    - honden
+    - chashitsu
+    - karesansui
+
+paper2_settings:
+  ari:
+    min_ari_threshold: 0.3  # Minimum average ARI to accept a grouping; set to 0.0 to disable
+    max_words_for_exhaustive: 15
+    include_freqs: true  # Whether to compute and append term frequencies in exemplars TXT
+# ... (other sections for paper1, paper2, paper4) ...
+
+paper3:
+  bootstrap_mode: "fast"          # Options: "fast", "slow"
+  models: ["cbow", "skipgram", "bert"] # Choose which models to run
+
+  fast_bootstrap_iterations: 200
+  slow_bootstrap_iterations: 1000
+
+  # Point to final shared embeddings instead of ad hoc fast/slow
+  w2v:
+    fast: {vector_size: 100, window: 9, min_count: 5, epochs: 50, workers: 1}
+    slow: {vector_size: 100, window: 9, min_count: 5, epochs: 50, workers: 1}
+
+  bert:
+    # Make provenance explicit; these flags are no-ops if unsupported,
+    # but they document intent and prevent accidental regressions.
+    use_final: true                 # <- use global bert_final hyperparams/checkpoint
+    source: "finetuned"             # <- "finetuned" vs "base"
+    prefer_best_epoch: true         # <- pick epoch with best val loss
+    pooling: "cls"                  # or "mean" (match what you use elsewhere)
+    layer: "last"                   # match your “use_last_hidden_layer: true”
+    max_contexts_per_word_fast: 64
+    max_contexts_per_word_slow: 256
+    use_last_hidden_layer: true
+
+  word_shift_window: 10
+
+# =============================================================
+#  Bootstrap Test Settings for Paper 3
+# =============================================================
+bootstrap_concepts_to_test:
+  Nature:
+    - nature
+    - natural
+    - garden
+    - landscape
+    - outdoor
+    - environment
+  Transition:
+    - transition
+    - liminal
+    - threshold
+    - passage
+    - in-between
+    - connecting
+  Social:
+    - social
+    - family
+    - gathering
+    - community
+    - informal
+    - public
+
+bootstrap_test_pairs:
+  # Focus on cross-cultural pairs for Paper 3's hypothesis
+  - ["engawa", "veranda"]
+  - ["tsuboniwa", "impluvium"]
+  # - ["tokonoma", "alcove"]   # Example of another potential cross-cultural pair
+  # - ["shoji", "screen"]      # Example of another potential cross-cultural pair
+
+
+# =============================================================
+#  Normalization Mapping
+# =============================================================
+normalization_mapping:
+  "縁側": "engawa"
+  "えんがわ": "engawa"
+  "間": "ma"
+  "ま": "ma"
+  "ma": "ma"
+  "無": "mu"
+  "む": "mu"
+  "mu": "mu"
+  "借景": "shakkei"
+  "しゃっけい": "shakkei"
+  "borrowedscenery": "shakkei"
+  "borrowed scenery": "shakkei"
+  "borrowed-scenery": "shakkei"
+  "borrowed_scenery": "shakkei"
+  "奥": "oku"
+  "おく": "oku"
+  "oku": "oku"
+  "床の間": "tokonoma"
+  "とこのま": "tokonoma"
+  "障子": "shōji"
+  "しょうじ": "shōji"
+  "shoji": "shōji"
+  "shouji": "shōji"
+  "襖": "fusuma"
+  "ふすま": "fusuma"
+  "違い棚": "chigaidana"
+  "ちがいだな": "chigaidana"
+  "土間": "doma"
+  "どま": "doma"
+  "玄関": "genkan"
+  "げんかん": "genkan"
+  "止石": "tomeishi"
+  "とめいし": "tomeishi"
+  "stop stone": "tomeishi"
+  "stop_stone": "tomeishi"
+  "stop-stone": "tomeishi"
+  "stoppingstone": "tomeishi"
+  "stopping-stone": "tomeishi"
+  "stopping_stone": "tomeishi"
+  "stopping stone": "tomeishi"
+  "いけず石": "ikezuishi"
+  "行けず石": "ikezuishi"
+  "いけずいし": "ikezuishi"
+  "ikezu ishi": "ikezuishi"
+  "ikezu-ishi": "ikezuishi"
+  "ikezu_ishi": "ikezuishi"
+  "路地": "roji"
+  "ろじ": "roji"
+  "鳥居": "torii"
+  "とりい": "torii"
+  "torii gate": "torii"
+  "torii-gate": "torii"
+  "torii_gate": "torii"
+  "注連縄": "shimenawa"
+  "しめなわ": "shimenawa"
+  "余白": "yohaku"
+  "よはく": "yohaku"
+  "坪庭": "tsuboniwa"
+  "つぼにわ": "tsuboniwa"
+  "tsubo niwa": "tsuboniwa"
+  "tsubo-niwa": "tsuboniwa"
+  "tsubo_niwa": "tsuboniwa"
+  "niwa": "niwa"
+  "庭": "niwa"
+  "にわ": "niwa"
+  "侘": "wabi"
+  "わび": "wabi"
+  "寂": "sabi"
+  "さび": "sabi"
+  "wabi-sabi": "wabi_sabi"  # Glued
+  "wabisabi": "wabi_sabi"
+  "wabi sabi": "wabi_sabi"
+  "わびさび": "wabi_sabi"
+  "侘寂": "wabi_sabi"
+  "縁": "en"
+  "えん": "en"
+  "en": "en"
+  "枯山水": "karesansui"
+  "かれさんすい": "karesansui"
+  "drylandscape": "karesansui"
+  "dry landscape": "karesansui"
+  "dry-landscape": "karesansui"
+  "dry_landscape": "karesansui"
+  "drygarden": "karesansui"
+  "dry garden": "karesansui"
+  "dry-garden": "karesansui"
+  "dry_garden": "karesansui"
+  "dry yard": "karesansui"
+  "dry-yard": "karesansui"
+  "dry_yard": "karesansui"
+  "rock yard": "karesansui"
+  "rock-yard": "karesansui"
+  "rock_yard": "karesansui"
+  "屏風": "byōbu"
+  "びょうぶ": "byōbu"
+  "byobu": "byōbu"
+  "byōbu screen": "byōbu"
+  "folding screen": "byōbu"
+  "屏風屏": "byōbu"
+  "廂": "hisashi"
+  "庇": "hisashi"
+  "ひさし": "hisashi"
+  "拝殿": "haiden"
+  "はいでん": "haiden"
+  "haiden": "haiden"
+  "worship hall": "haiden"
+  "haiden hall": "haiden"
+  "参道": "sandō"
+  "さんどう": "sandō"
+  "sando": "sandō"
+  "approach path": "sandō"
+  "shrine path": "sandō"
+  "sando path": "sandō"
+  "哀れ": "aware"
+  "物の哀れ": "aware"
+  "aware": "aware"
+  "mono no aware": "aware"
+  "pathos of things": "aware"
+  "物のあはれ": "aware"
+  "本殿": "honden"
+  "ほんでん": "honden"
+  "honden": "honden"
+  "main hall": "honden"
+  "shrine sanctuary": "honden"
+  "honden hall": "honden"
+  "茶室": "chashitsu"
+  "ちゃしつ": "chashitsu"
+  "chashitsu": "chashitsu"
+  "tea room": "chashitsu"
+  "teahouse": "chashitsu"
+  "chashitsu room": "chashitsu"
+  "veranda": "veranda"
+  "scenery": "scenery"
+  "gate": "gate"
+  "cha": "cha"
+  "茶": "cha"
+  "ちゃ": "cha"
+  "shitsu": "shitsu"
+  "室": "shitsu"
+  "しつ": "shitsu"
+  "tea": "tea"
+  "room": "room"
+
+# =============================================================
+#  Era Mapping
+# =============================================================
+era_mapping:
+  Traditional:
+    Japan:
+      - "Pre-history (Palaeolithic & Jōmon)"
+      - "Antiquity (Yayoi, Kofun, Asuka, Nara)"
+      - "Heian Period"
+      - "Medieval (Kamakura, Muromachi, Sengoku)"
+      - "Edo Period"
+    West:
+      - "Pre-history"
+      - "Antiquity (Classical Greece, Rome)"
+      - "Medieval"
+      - "Renaissance"
+      - "Early Modern Period"
+  Modern:
+    Japan:
+      - "Meiji Period"
+      - "Taishō Period"
+      - "Shōwa Period"
+      - "Heisei Period"
+      - "Reiwa Period"
+    West:
+      - "Modern (Industrial Revolution, 19th century)"
+      - "Contemporary (Post-WWII to Present)"
+
+# =============================================================
+#  Location Mapping
+# =============================================================
+location_mapping:
+  Japan:
+    - "Japan"
+  Other:
+    - "China"
+    - "Korea"
+    - "Indonesia"
+    - "Egypt"
+    - "Italy"
+    - "Greece"
+    - "France"
+    - "Spain"
+    - "Scandinavia"
+    - "Ottoman"
+    - "Russia"
+    - "UK"
+    - "US"
+
+# =============================================================
+#  Classification Categories
+# =============================================================
+classification_categories:
+  spatial_categories:
+    - "This concept describes a physical, indoor architectural space."
+    - "This concept describes a virtual or perceived indoor architectural space."
+    - "This concept describes a physical space that is in-between the interior and exterior."
+    - "This concept describes a virtual or perceived space that is in-between the interior and exterior."
+    - "This concept describes a physical, outdoor architectural space or garden element."
+    - "This concept describes a virtual or perceived outdoor space, like borrowed scenery."
+  boundary_categories:
+    - "This concept describes a physical object that acts as a boundary or border."
+    - "This concept describes a virtual or perceived boundary or border."
+  both_categories:
+    - "This concept describes both a physical indoor space and a physical boundary."
+    - "This concept describes both a physical indoor space and a virtual boundary."
+    - "This concept describes both a virtual indoor space and a physical boundary."
+    - "This concept describes both a virtual indoor space and a virtual boundary."
+    - "This concept describes both a physical indoor space and a virtual indoor space."
+    - "This concept describes both an in-between physical space and a physical boundary."
+    - "This concept describes both an in-between physical space and a virtual boundary."
+    - "This concept describes both an in-between virtual space and a physical boundary."
+    - "This concept describes both an in-between virtual space and a virtual boundary."
+    - "This concept describes both an in-between physical space and an in-between virtual space."
+    - "This concept describes both an outdoor physical space and a physical boundary."
+    - "This concept describes both an outdoor physical space and a virtual boundary."
+    - "This concept describes both an outdoor virtual space and a physical boundary."
+    - "This concept describes both an outdoor virtual space and a virtual boundary."
+    - "This concept describes both an outdoor physical space and an outdoor virtual space."
+    - "This concept describes both a physical boundary and a virtual boundary."

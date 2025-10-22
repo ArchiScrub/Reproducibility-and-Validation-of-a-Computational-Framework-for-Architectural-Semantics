@@ -1,0 +1,37 @@
+# filters.yaml
+normalisation:
+  "e.g.": "eg"
+  "i.e.": "ie"
+
+character_whitelist_regex: "[^\\p{Latin}\\p{Han}\\p{Hiragana}\\p{Katakana}\\p{N}\\-]+"
+number_regex: "\\d"
+
+allowed_pos: ["NOUN","PROPN","ADJ","VERB","ADV"]   # grammar filter
+passthrough:
+  japanese_chars: true
+
+stoplists:
+  single_letters: true
+  latin_utilities: ["eg","e.g","e.g.","etc","etc.","ie","i.e","i.e.","c.","d.","r.","b.","a","an","or"]
+  spacy_is_stop: true
+
+target_handling:
+  always_keep_targets: true
+  spacy_pos_as_propn: true
+
+token_merges:
+  merge_re_following: true
+
+sentence_split_regex: "[.\\n]+"
+
+definitional_patterns:
+  - "\\bX\\b\\s+(?:is|are|was|were)\\s+(?:an?|the)?\\b"
+  - "\\bX\\b\\s+refers\\s+to\\b"
+  - "\\bX\\b\\s+means\\b"
+  - "\\bX\\b\\s+describes\\b"
+  - "\\bX\\b\\s+is\\s+defined\\s+as\\b"
+  - "\\bX\\b\\s+is\\s+known\\s+as\\b"
+
+bert_vocab:
+  min_freq: 10
+  exclude_tokens: ["~"]
