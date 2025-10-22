@@ -1,0 +1,1 @@
+{"best_epoch":3,"cfg_hash":"5b50891615ad9298972c299a5c42352924995c294a7a230976be09e3e7b9439e","code_hash":"files:584eca20fd7429c880e791a979494ad621847887ac76144b3287e837abff5f03","corpus_path":"txt_corpus\\BERT_Corpus.txt","corpus_sha256":"d73baf30725b841f3a42df2b6aa0e777fb771b0418679fc696451d13db6d8f93","fine_tuned":true,"lora_used":true,"seed":1234}
