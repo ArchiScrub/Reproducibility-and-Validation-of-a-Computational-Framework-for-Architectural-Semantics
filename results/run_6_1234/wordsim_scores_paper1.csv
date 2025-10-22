@@ -1,0 +1,9 @@
+run_mode,dataset,model,spearman_rho,p_value
+clean,WordSim353,Word2Vec CBOW,0.1738746521,0.003
+clean,WordSim353_JA-EN,Word2Vec CBOW,0.1738746521,0.003
+clean,WordSim353,Word2Vec Skip-gram,0.3316720605,0
+clean,WordSim353_JA-EN,Word2Vec Skip-gram,0.3316720605,0
+clean,WordSim353,BERT (Base),0.2943902384,0
+clean,WordSim353_JA-EN,BERT (Base),0.2943902384,0
+clean,WordSim353,BERT (Fine-Tuned),0.3209936437,0
+clean,WordSim353_JA-EN,BERT (Fine-Tuned),0.3209936437,0
