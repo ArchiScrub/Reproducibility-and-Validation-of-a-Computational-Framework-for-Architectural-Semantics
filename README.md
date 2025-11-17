@@ -76,3 +76,12 @@ Paper:
 Repository (Data/Code):
 
 [A permanent DOI (e.g., from Zenodo) will be added here upon publication. For review purposes, please refer to this GitHub repository.]
+
+
+### Third-party libraries
+
+The scripts in this repository depend on external libraries
+(e.g. `transformers`, `scikit-learn`, and other Python packages).
+Those libraries are **not** covered by the licences in this
+repository. They keep their own original licences as distributed
+upstream.
